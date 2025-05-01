@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:ewasterecycling/welcome_screen.dart';
 import 'package:ewasterecycling/registration_screen.dart';
 import 'package:ewasterecycling/login_screen.dart';
@@ -10,8 +11,21 @@ import 'package:ewasterecycling/profile_screen.dart';
 import 'package:ewasterecycling/rewards_screen.dart';
 import 'package:ewasterecycling/education_screen.dart';
 import 'package:ewasterecycling/admin_dashboard.dart';
+import 'package:ewasterecycling/firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('Firebase initialized successfully');
+  } catch (e) {
+    print('Failed to initialize Firebase: $e');
+    // Continue without Firebase for development purposes
+  }
+  
   runApp(const EWasteRecyclingApp());
 }
 
@@ -43,21 +57,19 @@ class EWasteRecyclingApp extends StatelessWidget {
       initialRoute: '/welcome',
       routes: {
         '/welcome': (context) => const WelcomeScreen(),
-        '/register': (context) => RegistrationScreen(),
-        '/login': (context) => LoginScreen(),
+        '/register': (context) => const RegistrationScreen(),
+        '/login': (context) => const LoginScreen(),
         '/onboarding': (context) => const OnboardingScreen(),
         '/home': (context) => const HomeScreen(),
         '/search': (context) => const SearchScreen(),
         '/geolocation': (context) => const GeoLocationScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/rewards': (context) => const RewardsScreen(),
-        '/education': (context) => EducationScreen(),
+        '/education': (context) => const EducationScreen(),
         '/admin': (context) => const AdminDashboard(),
       },
       debugShowCheckedModeBanner: false,
-      // Handle unknown routes
       onGenerateRoute: (settings) {
-        // You can add custom route handling here if needed
         return MaterialPageRoute(
           builder: (context) => const WelcomeScreen(),
         );

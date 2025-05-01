@@ -52,26 +52,35 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ],
       ),
       drawer: _buildAdminDrawer(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Quick Stats Row
-            _buildQuickStats(),
-            const SizedBox(height: 24),
-            
-            // Weekly Collection Chart
-            _buildCollectionChart(),
-            const SizedBox(height: 24),
-            
-            // Recycling Centers Section
-            _buildCentersSection(),
-            const SizedBox(height: 24),
-            
-            // Recent User Reports
-            _buildReportsSection(),
-          ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          _refreshData();
+          return Future.delayed(const Duration(milliseconds: 1500));
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Quick Stats Row
+              _buildQuickStats(),
+              const SizedBox(height: 24),
+              
+              // Weekly Collection Chart
+              _buildCollectionChart(),
+              const SizedBox(height: 24),
+              
+              // Recycling Centers Section
+              _buildCentersSection(),
+              const SizedBox(height: 24),
+              
+              // Recent User Reports
+              _buildReportsSection(),
+              // Add bottom padding to avoid FAB overlap
+              const SizedBox(height: 80),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -83,13 +92,32 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildQuickStats() {
-    return const Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _StatCard(title: 'Total Users', value: '1,842', icon: Icons.people),
-        _StatCard(title: 'Active Centers', value: '14', icon: Icons.location_on),
-        _StatCard(title: 'Today\'s Collections', value: '89', icon: Icons.recycling),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Check if screen is narrow
+        if (constraints.maxWidth < 600) {
+          // For small screens, show stats in a column
+          return Column(
+            children: const [
+              _StatCard(title: 'Total Users', value: '1,842', icon: Icons.people),
+              SizedBox(height: 8),
+              _StatCard(title: 'Active Centers', value: '14', icon: Icons.location_on),
+              SizedBox(height: 8),
+              _StatCard(title: 'Today\'s Collections', value: '89', icon: Icons.recycling),
+            ],
+          );
+        }
+        // For wider screens, show stats in a row
+        return const Row(
+          children: [
+            Expanded(child: _StatCard(title: 'Total Users', value: '1,842', icon: Icons.people)),
+            SizedBox(width: 8),
+            Expanded(child: _StatCard(title: 'Active Centers', value: '14', icon: Icons.location_on)),
+            SizedBox(width: 8),
+            Expanded(child: _StatCard(title: 'Today\'s Collections', value: '89', icon: Icons.recycling)),
+          ],
+        );
+      }
     );
   }
 
@@ -112,13 +140,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
             SizedBox(
               height: 200,
               child: SfCartesianChart(
+                margin: const EdgeInsets.all(0),
                 primaryXAxis: CategoryAxis(),
+                // Add tooltips for better user experience
+                tooltipBehavior: TooltipBehavior(enable: true),
                 series: <ChartSeries>[
                   ColumnSeries<RecyclingData, String>(
                     dataSource: _weeklyData,
                     xValueMapper: (RecyclingData data, _) => data.day,
                     yValueMapper: (RecyclingData data, _) => data.amount,
                     color: Colors.green,
+                    // Add data labels
+                    dataLabelSettings: const DataLabelSettings(isVisible: true),
                   )
                 ],
               ),
@@ -133,51 +166,106 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Recycling Centers',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Recycling Centers',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            TextButton.icon(
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Add New'),
+              onPressed: () => _addNewCenter(),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         Card(
           elevation: 3,
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text('Name')),
-                DataColumn(label: Text('Status')),
-                DataColumn(label: Text('Collections')),
-                DataColumn(label: Text('Actions')),
-              ],
-              rows: _recyclingCenters.map((center) {
-                return DataRow(cells: [
-                  DataCell(Text(center.name)),
-                  DataCell(
-                    Chip(
-                      label: Text(center.status),
-                      backgroundColor: center.status == 'Active'
-                          ? Colors.green[100]
-                          : center.status == 'Maintenance'
-                              ? Colors.orange[100]
-                              : Colors.red[100],
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: DataTable(
+                columns: const [
+                  DataColumn(label: Text('Name')),
+                  DataColumn(label: Text('Status')),
+                  DataColumn(label: Text('Collections')),
+                  DataColumn(label: Text('Actions')),
+                ],
+                rows: _recyclingCenters.map((center) {
+                  return DataRow(cells: [
+                    DataCell(Text(center.name)),
+                    DataCell(
+                      Chip(
+                        label: Text(center.status),
+                        backgroundColor: center.status == 'Active'
+                            ? Colors.green[100]
+                            : center.status == 'Maintenance'
+                                ? Colors.orange[100]
+                                : Colors.red[100],
+                      ),
                     ),
-                  ),
-                  DataCell(Text(center.collections.toString())),
-                  DataCell(
-                    IconButton(
-                      icon: const Icon(Icons.edit, size: 18),
-                      onPressed: () => _editCenter(center),
+                    DataCell(Text(center.collections.toString())),
+                    DataCell(
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 18),
+                            onPressed: () => _editCenter(center),
+                            tooltip: 'Edit',
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                            onPressed: () => _deleteCenter(center),
+                            tooltip: 'Delete',
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ]);
-              }).toList(),
+                  ]);
+                }).toList(),
+              ),
             ),
           ),
         ),
       ],
+    );
+  }
+
+  void _deleteCenter(CenterData center) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Deletion'),
+          content: Text('Are you sure you want to delete ${center.name}?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                // Delete center logic would go here
+                setState(() {
+                  _recyclingCenters.remove(center);
+                });
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${center.name} deleted')),
+                );
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -250,13 +338,55 @@ class _AdminDashboardState extends State<AdminDashboard> {
               ],
             ),
           ),
-          _drawerItem(Icons.dashboard, 'Dashboard', () {}),
-          _drawerItem(Icons.verified_user, 'Verify Centers', () {}),
-          _drawerItem(Icons.analytics, 'Analytics', () {}),
-          _drawerItem(Icons.settings, 'Settings', () {}),
+          _drawerItem(Icons.dashboard, 'Dashboard', () {
+            Navigator.pop(context); // Close drawer first
+            // No navigation needed as we're already on dashboard
+          }),
+          _drawerItem(Icons.verified_user, 'Verify Centers', () {
+            Navigator.pop(context);
+            // Navigate to verify centers screen
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Verify Centers - Coming Soon')),
+            );
+          }),
+          _drawerItem(Icons.analytics, 'Analytics', () {
+            Navigator.pop(context);
+            // Navigate to analytics screen
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Analytics - Coming Soon')),
+            );
+          }),
+          _drawerItem(Icons.settings, 'Settings', () {
+            Navigator.pop(context);
+            // Navigate to settings screen
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Settings - Coming Soon')),
+            );
+          }),
           const Divider(),
           _drawerItem(Icons.logout, 'Logout', () {
-            Navigator.pushReplacementNamed(context, '/login');
+            // Handle logout with confirmation
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Confirm Logout'),
+                content: const Text('Are you sure you want to log out?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close dialog
+                      Navigator.pop(context); // Close drawer
+                      Navigator.pushReplacementNamed(context, '/login');
+                    },
+                    child: const Text('Logout'),
+                  ),
+                ],
+              ),
+            );
           }),
         ],
       ),
@@ -273,25 +403,117 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   // Action Methods
   void _showNotifications() {
-    // Implement notifications view
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Notifications'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView(
+            shrinkWrap: true,
+            children: const [
+              ListTile(
+                leading: Icon(Icons.notification_important, color: Colors.red),
+                title: Text('New center request'),
+                subtitle: Text('Rawalpindi area - 10 minutes ago'),
+              ),
+              ListTile(
+                leading: Icon(Icons.warning, color: Colors.orange),
+                title: Text('Capacity warning'),
+                subtitle: Text('Lahore center at 85% - 2 hours ago'),
+              ),
+              ListTile(
+                leading: Icon(Icons.info, color: Colors.blue),
+                title: Text('System update available'),
+                subtitle: Text('Version 2.1 ready - 1 day ago'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Notifications cleared')),
+              );
+            },
+            child: const Text('Mark all read'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _refreshData() {
-    // Implement data refresh
+    // In a real app, you'd fetch fresh data here
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Refreshing data...')),
+    );
+    
+    // Simulate loading delay
+    Future.delayed(const Duration(seconds: 1), () {
+      setState(() {
+        // Update with new data
+      });
+    });
   }
 
   void _addNewCenter() {
+    final formKey = GlobalKey<FormState>();
+    final nameController = TextEditingController();
+    final locationController = TextEditingController();
+    final capacityController = TextEditingController();
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add New Recycling Center'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(decoration: InputDecoration(labelText: 'Center Name')),
-            TextField(decoration: InputDecoration(labelText: 'Location')),
-            TextField(decoration: InputDecoration(labelText: 'Capacity (kg/day)')),
-          ],
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Center Name'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter center name';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: locationController,
+                decoration: const InputDecoration(labelText: 'Location'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter location';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                controller: capacityController,
+                decoration: const InputDecoration(labelText: 'Capacity (kg/day)'),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter capacity';
+                  }
+                  if (int.tryParse(value) == null) {
+                    return 'Please enter a valid number';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -300,11 +522,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
           TextButton(
             onPressed: () {
-              // Add center logic
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Center added successfully')),
-              );
+              if (formKey.currentState!.validate()) {
+                // Add center logic
+                setState(() {
+                  _recyclingCenters.add(
+                    CenterData(
+                      nameController.text,
+                      'Active',
+                      0, // Initial collections
+                    ),
+                  );
+                });
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${nameController.text} added successfully')),
+                );
+              }
             },
             child: const Text('Save'),
           ),
@@ -314,11 +547,125 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   void _editCenter(CenterData center) {
-    // Implement edit functionality
+    final nameController = TextEditingController(text: center.name);
+    final statusOptions = ['Active', 'Maintenance', 'Inactive'];
+    String selectedStatus = center.status;
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return AlertDialog(
+            title: const Text('Edit Recycling Center'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Center Name'),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedStatus,
+                  decoration: const InputDecoration(labelText: 'Status'),
+                  items: statusOptions.map((status) {
+                    return DropdownMenuItem(
+                      value: status,
+                      child: Text(status),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        selectedStatus = value;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  // Update center data
+                  final int index = _recyclingCenters.indexOf(center);
+                  if (index != -1) {
+                    this.setState(() {
+                      _recyclingCenters[index] = CenterData(
+                        nameController.text,
+                        selectedStatus,
+                        center.collections,
+                      );
+                    });
+                  }
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Center updated successfully')),
+                  );
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   void _viewReportDetails(UserReport report) {
-    // Implement report viewing
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Report from ${report.userName}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Issue: ${report.issue}'),
+            const SizedBox(height: 8),
+            Text('Status: ${report.status}'),
+            const SizedBox(height: 16),
+            const Text(
+              'Additional Details:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'User reported this issue on May 1, 2025. They attached 2 photos showing their recycling questions.',
+              style: TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          if (report.status != 'Resolved')
+            TextButton(
+              onPressed: () {
+                // Mark as resolved
+                final int index = _recentReports.indexOf(report);
+                if (index != -1) {
+                  setState(() {
+                    _recentReports[index] = UserReport(
+                      report.userName,
+                      report.issue,
+                      'Resolved',
+                    );
+                  });
+                }
+                Navigator.pop(context);
+              },
+              child: const Text('Mark as Resolved'),
+            ),
+        ],
+      ),
+    );
   }
 }
 

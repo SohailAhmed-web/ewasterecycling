@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "463075306313",
+    "project_id": "ewasterecycling-f833b",
+    "storage_bucket": "ewasterecycling-f833b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:463075306313:android:b305adfb161e88ceb74898",
+        "android_client_info": {
+          "package_name": "com.example.ewasterecycling"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA64K5SNy5ADfATjQNkvVM5J80soJgSiOw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

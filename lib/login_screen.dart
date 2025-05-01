@@ -1,199 +1,170 @@
 import 'package:flutter/material.dart';
-import 'package:ewasterecycling/registration_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:ewasterecycling/services/auth_service.dart';
 
-class LoginScreen extends StatelessWidget {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({Key? key}) : super(key: key);
 
-  LoginScreen({super.key});
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      try {
+        await _authService.signInWithEmailAndPassword(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+        
+        if (!mounted) return;
+        
+        // Navigate to profile screen after successful login
+        Navigator.pushReplacementNamed(context, '/profile');
+      } on FirebaseAuthException catch (e) {
+        setState(() {
+          _errorMessage = e.message ?? 'Authentication failed';
+        });
+      } catch (e) {
+        setState(() {
+          _errorMessage = 'An unexpected error occurred';
+        });
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
+      appBar: AppBar(
+        title: const Text('Login'),
+        backgroundColor: Colors.green,
+      ),
+      body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-
-              // App Logo/Title
-              const Text(
-                'EWaste Recycling',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Recycle responsibly with E Waste!',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 40),
-
-              // Email Field
-              TextField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-
-              // Password Field
-              TextField(
-                controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
-                ),
-                obscureText: true,
-              ),
-              const SizedBox(height: 8),
-
-              // Forgot Password
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    // Add forgot password functionality
-                  },
-                  child: const Text(
-                    'Forgot your password?',
-                    style: TextStyle(color: Colors.green),
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'Welcome Back!',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-
-              // Login Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Add login logic
-                    Navigator.pushNamed(context, '/home');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text(
-                    'Log in',
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Divider
-              const Row(
-                children: [
-                  Expanded(child: Divider()),
+                const SizedBox(height: 30),
+                
+                // Error message
+                if (_errorMessage != null)
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('or'),
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: 24),
 
-              // Social Login Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Facebook login button
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // Facebook login
-                      },
-                      icon: Image.asset(
-                        'assets/images/facebook.png',
-                        height: 18,
-                        width: 18,
-                      ),
-                      label: const Text(
-                        'Facebook',
-                        style: TextStyle(fontSize: 12),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black87,
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                        elevation: 1,
-                        side: BorderSide(color: Colors.grey.shade300),
-                      ),
-                    ),
+                // Email field
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email),
                   ),
-                  const SizedBox(width: 16),
-                  // Google login button
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // Google login
-                      },
-                      icon: Image.asset(
-                        'assets/images/google.png',
-                        height: 1,
-                        width: 18,
-                      ),
-                      label: const Text(
-                        'Google',
-                        style: TextStyle(fontSize: 12),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black87,
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                        elevation: 1,
-                        side: BorderSide(color: Colors.grey.shade300),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 40),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
 
-              // Sign Up Redirect
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("New to EWasteRecycling?"),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => RegistrationScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      'Join now',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                // Password field
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: Icon(Icons.lock),
                   ),
-                ],
-              ),
-            ],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your password';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Login button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _login,
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text('Login'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Register link
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/register');
+                  },
+                  child: const Text('Don\'t have an account? Register'),
+                ),
+                
+                // Forgot password link
+                TextButton(
+                  onPressed: () {
+                    // Navigate to forgot password screen or show dialog
+                  },
+                  child: const Text('Forgot Password?'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

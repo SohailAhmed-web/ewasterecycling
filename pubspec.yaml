@@ -1,6 +1,6 @@
 name: ewasterecycling
-description: A eWaste Recycling App for Pakistan
-
+description: A Flutter application for e-waste recycling.
+publish_to: 'none'
 version: 1.0.0+1
 
 environment:
@@ -9,22 +9,27 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.2
-  google_maps_flutter: ^2.2.3
-  geolocator: ^10.0.0
-  share_plus: ^6.3.0
-  syncfusion_flutter_charts: ^22.1.40
-  provider: ^6.0.5
-  http: ^1.1.0
-  dio: ^5.3.2
-  geocoding: ^2.1.0
-
+  syncfusion_flutter_charts: ^29.1.38 
+  
+  # Firebase
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.5.3
+  cloud_firestore: ^5.6.7
+  
+  # UI
+  cupertino_icons: ^1.0.5
+  share_plus: ^7.0.2
+  
+  # Others
+  google_sign_in: ^6.1.4
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^2.0.2
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/icons/
